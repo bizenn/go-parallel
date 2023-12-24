@@ -103,7 +103,7 @@ func NewTapFromDecoder[V any](dec Decoder) *Tap[V] {
 		if err := dec.Decode(&v); err == io.EOF {
 			return v, ErrEOD
 		} else if err != nil {
-			return v, ErrEOD
+			return v, err
 		}
 		return v, nil
 	})
