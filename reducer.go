@@ -55,16 +55,21 @@ func (reducer *Reducer[IN, OUT]) Run(ctx context.Context) {
 						}
 						break loop
 					}
+					var init OUT
 					if in.Err() != nil {
-						var out OUT
-						reducer.out <- NewData(out, in.Err())
+						reducer.out <- NewData(init, in.Err())
+						continue loop
+					}
+					out, flush, err = reducer.proc(ctx, in.Value(), out)
+					if flush {
+						reducer.out <- NewData(out, err)
+						out = init
+						flush = false
 					} else {
-						out, flush, err = reducer.proc(ctx, in.Value(), out)
-						if flush || err != nil {
-							reducer.out <- NewData(out, err)
-						} else {
-							flush = true
+						if err != nil {
+							reducer.out <- NewData(init, err)
 						}
+						flush = true
 					}
 				}
 			}
