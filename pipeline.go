@@ -10,6 +10,7 @@ type Runnable interface {
 
 type Producer[OUT any] interface {
 	Out() <-chan OUT
+	Join(Consumer[OUT])
 	Runnable
 }
 
@@ -24,14 +25,14 @@ type Processor[IN any, OUT any] interface {
 }
 
 type Pipeline[IN any, OUT any] struct {
-	Processor[IN, OUT]
-	head  Consumer[IN]
-	tail  Producer[OUT]
+	Processor[Data[IN], Data[OUT]]
+	head  Consumer[Data[IN]]
+	tail  Producer[Data[OUT]]
 	procs []Runnable
 }
 
-func Compose[IN any, INOUT any, OUT any](p1 Processor[IN, INOUT], p2 Processor[INOUT, OUT]) *Pipeline[IN, OUT] {
-	p2.In(p1.Out())
+func Compose[IN any, INOUT any, OUT any](p1 Processor[Data[IN], Data[INOUT]], p2 Processor[Data[INOUT], Data[OUT]]) *Pipeline[IN, OUT] {
+	p1.Join(p2)
 	return &Pipeline[IN, OUT]{
 		head:  p1,
 		tail:  p2,
@@ -39,15 +40,19 @@ func Compose[IN any, INOUT any, OUT any](p1 Processor[IN, INOUT], p2 Processor[I
 	}
 }
 
-func (pipeline Pipeline[IN, OUT]) In(in <-chan IN) {
+func (pipeline *Pipeline[IN, OUT]) Join(c Consumer[Data[OUT]]) {
+	c.In(pipeline.Out())
+}
+
+func (pipeline *Pipeline[IN, OUT]) In(in <-chan Data[IN]) {
 	pipeline.head.In(in)
 }
 
-func (pipeline Pipeline[IN, OUT]) Out() <-chan OUT {
+func (pipeline *Pipeline[IN, OUT]) Out() <-chan Data[OUT] {
 	return pipeline.tail.Out()
 }
 
-func (pipeline Pipeline[IN, OUT]) Run(ctx context.Context) {
+func (pipeline *Pipeline[IN, OUT]) Run(ctx context.Context) {
 	for _, p := range pipeline.procs {
 		p.Run(ctx)
 	}

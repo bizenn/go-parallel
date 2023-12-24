@@ -26,6 +26,10 @@ func NewSpreader[IN any, OUT any](concurrent int, f SpreadFunc[IN, OUT]) *Spread
 	}
 }
 
+func (spreader *Spreader[IN, OUT]) Join(c Consumer[Data[OUT]]) {
+	c.In(spreader.Out())
+}
+
 func (spreader *Spreader[IN, OUT]) In(in <-chan Data[IN]) {
 	spreader.in = in
 }

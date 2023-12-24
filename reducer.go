@@ -26,6 +26,10 @@ func NewReducer[IN any, OUT any](concurrent int, f ReduceFunc[IN, OUT]) *Reducer
 	}
 }
 
+func (reducer *Reducer[IN, OUT]) Join(c Consumer[Data[OUT]]) {
+	c.In(reducer.Out())
+}
+
 func (reducer *Reducer[IN, OUT]) In(in <-chan Data[IN]) {
 	reducer.in = in
 }

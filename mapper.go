@@ -26,6 +26,10 @@ func NewMapper[IN any, OUT any](concurrent int, f MapFunc[IN, OUT]) *Mapper[IN, 
 	}
 }
 
+func (mapper *Mapper[IN, OUT]) Join(c Consumer[Data[OUT]]) {
+	c.In(mapper.Out())
+}
+
 func (mapper *Mapper[IN, OUT]) In(in <-chan Data[IN]) {
 	mapper.in = in
 }

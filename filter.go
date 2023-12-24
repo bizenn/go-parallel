@@ -26,6 +26,10 @@ func NewFilter[T any](concurrent int, pred Predicate[T]) *Filter[T] {
 	}
 }
 
+func (filter *Filter[T]) Join(c Consumer[Data[T]]) {
+	c.In(filter.Out())
+}
+
 func (filter *Filter[T]) In(in <-chan Data[T]) {
 	filter.in = in
 }

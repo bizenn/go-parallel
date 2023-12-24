@@ -28,6 +28,10 @@ func NewTap[OUT any](f TapFunc[OUT]) *Tap[OUT] {
 	}
 }
 
+func (src *Tap[OUT]) Join(c Consumer[Data[OUT]]) {
+	c.In(src.Out())
+}
+
 func (src *Tap[OUT]) Out() <-chan Data[OUT] {
 	return src.out
 }
