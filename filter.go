@@ -12,6 +12,7 @@ type Filter[T any] struct {
 	concurrent int
 	predicate  Predicate[T]
 	wg         *sync.WaitGroup
+	next       Runnable
 }
 
 type Predicate[T any] func(context.Context, T) (bool, error)
@@ -28,6 +29,7 @@ func NewFilter[T any](concurrent int, pred Predicate[T]) *Filter[T] {
 
 func (filter *Filter[T]) Join(c Consumer[Data[T]]) {
 	c.In(filter.Out())
+	filter.next = c
 }
 
 func (filter *Filter[T]) In(in <-chan Data[T]) {
@@ -66,5 +68,8 @@ func (filter *Filter[T]) Run(ctx context.Context) {
 			filter.wg.Wait()
 			close(filter.out)
 		}()
+	}
+	if filter.next != nil {
+		filter.next.Run(ctx)
 	}
 }

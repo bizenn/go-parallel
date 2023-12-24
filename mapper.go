@@ -12,6 +12,7 @@ type Mapper[IN any, OUT any] struct {
 	concurrent int
 	proc       MapFunc[IN, OUT]
 	wg         *sync.WaitGroup
+	next       Runnable
 }
 
 type MapFunc[IN any, OUT any] func(context.Context, IN) (OUT, error)
@@ -28,6 +29,7 @@ func NewMapper[IN any, OUT any](concurrent int, f MapFunc[IN, OUT]) *Mapper[IN, 
 
 func (mapper *Mapper[IN, OUT]) Join(c Consumer[Data[OUT]]) {
 	c.In(mapper.Out())
+	mapper.next = c
 }
 
 func (mapper *Mapper[IN, OUT]) In(in <-chan Data[IN]) {
@@ -69,4 +71,7 @@ func (mapper *Mapper[IN, OUT]) Run(ctx context.Context) {
 		mapper.wg.Wait()
 		close(mapper.out)
 	}()
+	if mapper.next != nil {
+		mapper.next.Run(ctx)
+	}
 }

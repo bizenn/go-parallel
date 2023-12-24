@@ -12,6 +12,7 @@ type Reducer[IN any, OUT any] struct {
 	concurrent int
 	proc       ReduceFunc[IN, OUT]
 	wg         *sync.WaitGroup
+	next       Runnable
 }
 
 type ReduceFunc[IN any, OUT any] func(context.Context, IN, OUT) (OUT, bool, error)
@@ -28,6 +29,7 @@ func NewReducer[IN any, OUT any](concurrent int, f ReduceFunc[IN, OUT]) *Reducer
 
 func (reducer *Reducer[IN, OUT]) Join(c Consumer[Data[OUT]]) {
 	c.In(reducer.Out())
+	reducer.next = c
 }
 
 func (reducer *Reducer[IN, OUT]) In(in <-chan Data[IN]) {
@@ -84,4 +86,7 @@ func (reducer *Reducer[IN, OUT]) Run(ctx context.Context) {
 		reducer.wg.Wait()
 		close(reducer.out)
 	}()
+	if reducer.next != nil {
+		reducer.next.Run(ctx)
+	}
 }

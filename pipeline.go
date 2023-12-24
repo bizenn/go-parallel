@@ -26,22 +26,22 @@ type Processor[IN any, OUT any] interface {
 
 type Pipeline[IN any, OUT any] struct {
 	Processor[Data[IN], Data[OUT]]
-	head  Consumer[Data[IN]]
-	tail  Producer[Data[OUT]]
-	procs []Runnable
+	head Consumer[Data[IN]]
+	tail Producer[Data[OUT]]
+	next Runnable
 }
 
 func Compose[IN any, INOUT any, OUT any](p1 Processor[Data[IN], Data[INOUT]], p2 Processor[Data[INOUT], Data[OUT]]) *Pipeline[IN, OUT] {
 	p1.Join(p2)
 	return &Pipeline[IN, OUT]{
-		head:  p1,
-		tail:  p2,
-		procs: []Runnable{p1, p2},
+		head: p1,
+		tail: p2,
 	}
 }
 
 func (pipeline *Pipeline[IN, OUT]) Join(c Consumer[Data[OUT]]) {
 	c.In(pipeline.Out())
+	pipeline.next = c
 }
 
 func (pipeline *Pipeline[IN, OUT]) In(in <-chan Data[IN]) {
@@ -53,7 +53,8 @@ func (pipeline *Pipeline[IN, OUT]) Out() <-chan Data[OUT] {
 }
 
 func (pipeline *Pipeline[IN, OUT]) Run(ctx context.Context) {
-	for _, p := range pipeline.procs {
-		p.Run(ctx)
+	pipeline.head.Run(ctx)
+	if pipeline.next != nil {
+		pipeline.next.Run(ctx)
 	}
 }

@@ -15,6 +15,7 @@ type Tap[OUT any] struct {
 	out  chan Data[OUT]
 	proc TapFunc[OUT]
 	wg   *sync.WaitGroup
+	next Runnable
 }
 
 type TapFunc[OUT any] func(context.Context) (OUT, error)
@@ -30,6 +31,7 @@ func NewTap[OUT any](f TapFunc[OUT]) *Tap[OUT] {
 
 func (src *Tap[OUT]) Join(c Consumer[Data[OUT]]) {
 	c.In(src.Out())
+	src.next = c
 }
 
 func (src *Tap[OUT]) Out() <-chan Data[OUT] {
@@ -58,6 +60,9 @@ func (src Tap[OUT]) Run(ctx context.Context) {
 		src.wg.Wait()
 		close(src.out)
 	}()
+	if src.next != nil {
+		src.next.Run(ctx)
+	}
 }
 
 func genFromSlice[T any](vs []T) TapFunc[T] {

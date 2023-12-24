@@ -12,6 +12,7 @@ type Spreader[IN any, OUT any] struct {
 	concurrent int
 	proc       SpreadFunc[IN, OUT]
 	wg         *sync.WaitGroup
+	next       Runnable
 }
 
 type SpreadFunc[IN any, OUT any] func(context.Context, IN) ([]OUT, error)
@@ -28,6 +29,7 @@ func NewSpreader[IN any, OUT any](concurrent int, f SpreadFunc[IN, OUT]) *Spread
 
 func (spreader *Spreader[IN, OUT]) Join(c Consumer[Data[OUT]]) {
 	c.In(spreader.Out())
+	spreader.next = c
 }
 
 func (spreader *Spreader[IN, OUT]) In(in <-chan Data[IN]) {
@@ -76,4 +78,7 @@ func (spreader *Spreader[IN, OUT]) Run(ctx context.Context) {
 		spreader.wg.Wait()
 		close(spreader.out)
 	}()
+	if spreader.next != nil {
+		spreader.next.Run(ctx)
+	}
 }
