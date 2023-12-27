@@ -87,10 +87,20 @@ type KeyValue[K comparable, V any] struct {
 	Value V
 }
 
-func genFromMap[K comparable, V any](m map[K]V) TapFunc[KeyValue[K, V]] {
-	s := make([]KeyValue[K, V], 0, len(m))
+func (kv *KeyValue[K, V]) Clone() any {
+	if kv == nil {
+		return nil
+	}
+	return &KeyValue[K, V]{
+		Key:   kv.Key,
+		Value: kv.Value,
+	}
+}
+
+func genFromMap[K comparable, V any](m map[K]V) TapFunc[*KeyValue[K, V]] {
+	s := make([]*KeyValue[K, V], 0, len(m))
 	for k, v := range m {
-		s = append(s, KeyValue[K, V]{
+		s = append(s, &KeyValue[K, V]{
 			Key:   k,
 			Value: v,
 		})
@@ -98,7 +108,7 @@ func genFromMap[K comparable, V any](m map[K]V) TapFunc[KeyValue[K, V]] {
 	return genFromSlice(s)
 }
 
-func NewTapFromMap[K comparable, V any](m map[K]V) *Tap[KeyValue[K, V]] {
+func NewTapFromMap[K comparable, V any](m map[K]V) *Tap[*KeyValue[K, V]] {
 	return NewTap(genFromMap(m))
 }
 
